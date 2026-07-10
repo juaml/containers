@@ -118,9 +118,23 @@ info "PWD=$PWD"
 thisfile=$(readlink_f "$0")
 thisdir=$(dirname "$thisfile")
 updir=$(dirname "$thisdir")
-BHOME="$updir/binds/HOME"
+# BHOME="$updir/binds/HOME"
 
-cmd="${SINGULARITY_CMD:-$1}"; shift
+# Create a dedicated HOME for the container in the user's HOME folder
+BHOME=$(mktemp -d -p "${HOME}/.binds/" -t HOME.XXXXXX)
+
+# echo "BHOME=$BHOME"
+exit_script() {
+    echo "Deleting temporary directory $BHOME"
+	rm -rf "$BHOME"
+    trap - SIGINT SIGTERM # clear the trap
+    exit -1
+}
+
+trap exit_script SIGINT SIGTERM
+
+
+cmd="${SINGULARITYb_CMD:-$1}"; shift
 
 if [ -n "${DATALAD_CONTAINER_NAME:-}" ]; then
 	export SINGULARITYENV_DATALAD_CONTAINER_NAME="$DATALAD_CONTAINER_NAME"
@@ -246,3 +260,5 @@ else
 		   repronim/containers:latest \
 		   "$cmd" "${SARGS[@]}"
 fi
+
+rm -rf "$BHOME"
