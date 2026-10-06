@@ -121,6 +121,7 @@ updir=$(dirname "$thisdir")
 # BHOME="$updir/binds/HOME"
 
 # Create a dedicated HOME for the container in the user's HOME folder
+mkdir -p "${HOME}/.binds/"
 BHOME=$(mktemp -d -p "${HOME}/.binds/" -t HOME.XXXXXX)
 
 # echo "BHOME=$BHOME"
@@ -255,10 +256,18 @@ else
 	# also into Docker environment to make sure that some /etc/localtime is available
 	DARGS=( "${DARGS[@]}" -v "$updir/binds/zoneinfo/UTC:/etc/localtime" )
 
-	docker run \
-		   "${DARGS[@]}" \
-		   repronim/containers:latest \
-		   "$cmd" "${SARGS[@]}"
+	#if we are running a pull command, do not bind anything, since it will be a pull from the docker hub and we don't need to bind anything
+	if [ "$cmd" = "pull" ]; then
+		docker run \
+			"${DARGS[@]}" \
+			repronim/containers:latest \
+			"$cmd" "${@}"
+	else
+		docker run \
+			"${DARGS[@]}" \
+			repronim/containers:latest \
+			"$cmd" "${SARGS[@]}"
+	fi
 fi
 
 rm -rf "$BHOME"
